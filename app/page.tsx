@@ -1,11 +1,21 @@
+"use client";
 import Image from "next/image";
-import { FaTwitter } from "react-icons/fa";
-import React from "react";
-import { BiHash, BiHomeCircle, BiMobile, BiMoney, BiUser } from "react-icons/bi";
+import React, { useCallback } from "react";
+import {
+  BiHash,
+  BiHomeCircle,
+  BiMobile,
+  BiMoney,
+  BiUser,
+} from "react-icons/bi";
 import { BsBell, BsBookmark, BsEnvelope, BsTwitter } from "react-icons/bs";
 import { Inter } from "next/font/google";
 import FeedCard from "@/components/FeedCard";
 import { SlOptions } from "react-icons/sl";
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import toast from "react-hot-toast";
+import { graphqlClient } from "@/clients/api";
+import { verifyUserGoogleTokenQuery } from "@/graphql/query/user";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,7 +47,7 @@ const sidebarMenuItems: TwitterSidebarButton[] = [
   },
   {
     title: "Twitter Blue",
-    icon: <BiMoney/>,
+    icon: <BiMoney />,
   },
   {
     title: "Profile",
@@ -50,12 +60,33 @@ const sidebarMenuItems: TwitterSidebarButton[] = [
 ];
 
 export default function Home() {
+  const handleLoginWithGoogle = useCallback(
+    async (cred: CredentialResponse) => {
+      const googleToken = cred.credential;
+      if (!googleToken) {
+        return toast.error(`Google Token not found`);
+      }
+
+      const { verifyGoogleToken } = await graphqlClient.request(
+        verifyUserGoogleTokenQuery,
+        { token: googleToken }
+      );
+      toast.success("verify Success");
+      console.log(verifyGoogleToken);
+
+      if(verifyGoogleToken){
+        window.localStorage.setItem('__Twitter_token',verifyGoogleToken);
+      }
+    },
+    []
+  ); // <-- dependencies array (empty in this case)
+
   return (
     <div className={inter.className}>
       <div className=" grid grid-cols-12 h-screen w-screen px-32">
         <div className=" col-span-3 pt-2">
           <div className="text-3xl w-fit hover:bg-gray-800 p-3  rounded-full h-fit cursor-pointer transition-all">
-            <BsTwitter/>
+            <BsTwitter />
           </div>
 
           <div className="mt-2 font-semibold text-lg pr-4">
@@ -78,15 +109,20 @@ export default function Home() {
           </div>
         </div>
         <div className="col-span-5 border-r-[1px] border-l-[1px] h-screen overflow-scroll border-gray-600">
-          <FeedCard/>
-          <FeedCard/>
-          <FeedCard/>
-          <FeedCard/>
-          <FeedCard/>
-          <FeedCard/>
-          <FeedCard/>
+          <FeedCard />
+          <FeedCard />
+          <FeedCard />
+          <FeedCard />
+          <FeedCard />
+          <FeedCard />
+          <FeedCard />
         </div>
-        <div className="col-span-3"></div>
+        <div className="col-span-3 p-5">
+          <div className="p-5 bg-slate-700 rounded-lg">
+            <h1 className="my-2 text-xl">New To Twitter?</h1>
+            <GoogleLogin onSuccess={handleLoginWithGoogle} />
+          </div>
+        </div>
       </div>
     </div>
   );
